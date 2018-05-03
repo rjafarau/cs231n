@@ -178,7 +178,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         sample_mean, sample_var = x.mean(axis=0), x.var(axis=0)
 
         x -= sample_mean
-        x /= np.sqrt(sample_var)
+        x /= np.sqrt(sample_var + eps)
         out = gamma * x + beta
 
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
@@ -194,7 +194,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Store the result in the out variable.                               #
         #######################################################################
         x -= running_mean
-        x /= np.sqrt(running_var)
+        x /= np.sqrt(running_var + eps)
 
         out = gamma * x + beta
         #######################################################################
