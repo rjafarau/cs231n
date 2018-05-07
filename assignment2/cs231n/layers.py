@@ -183,6 +183,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
 
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
+
+        cache = (x, 1 / np.sqrt(sample_var + eps), gamma)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -234,7 +236,14 @@ def batchnorm_backward(dout, cache):
     # Referencing the original paper (https://arxiv.org/abs/1502.03167)       #
     # might prove to be helpful.                                              #
     ###########################################################################
-    pass
+    N = dout.shape[0]
+    x_hat, x_inv_std, gamma = cache
+
+    dx_hat = dout * gamma
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_hat, axis=0)
+    dx = (x_inv_std / N) * (N * dx_hat - np.sum(dx_hat, axis=0) - x_hat * np.sum(dx_hat * x_hat, axis=0))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
