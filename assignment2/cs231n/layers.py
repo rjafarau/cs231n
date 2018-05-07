@@ -177,14 +177,13 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         sample_mean, sample_var = x.mean(axis=0), x.var(axis=0)
 
-        x -= sample_mean
-        x /= np.sqrt(sample_var + eps)
-        out = gamma * x + beta
+        x_hat = (x - sample_mean) / np.sqrt(sample_var + eps)
+        out = gamma * x_hat + beta
 
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
 
-        cache = (x, 1 / np.sqrt(sample_var + eps), gamma)
+        cache = (x_hat, 1 / np.sqrt(sample_var + eps), gamma)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -195,10 +194,8 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        x -= running_mean
-        x /= np.sqrt(running_var + eps)
-
-        out = gamma * x + beta
+        x_hat = (x - running_mean) / np.sqrt(running_var + eps)
+        out = gamma * x_hat + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
@@ -274,7 +271,14 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    pass
+    N = dout.shape[0]
+    x_hat, x_inv_std, gamma = cache
+
+    dx_hat = dout * gamma
+
+    dbeta = np.sum(dout, axis=0)
+    dgamma = np.sum(dout * x_hat, axis=0)
+    dx = (x_inv_std / N) * (N * dx_hat - np.sum(dx_hat, axis=0) - x_hat * np.sum(dx_hat * x_hat, axis=0))
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
