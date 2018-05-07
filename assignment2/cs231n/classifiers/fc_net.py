@@ -175,12 +175,19 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to ones and shift     #
         # parameters should be initialized to zeros.                               #
         ############################################################################
-        all_dims = [input_dim] + hidden_dims + [num_classes]
-        for layer_id in range(self.num_layers):
-            self.params['W%d' % (layer_id + 1)] = (
-                weight_scale * np.random.randn(all_dims[layer_id], all_dims[layer_id + 1])
+        all_dims = [input_dim] + hidden_dims
+        for layer_id in range(1, self.num_layers):
+            self.params['W%d' % layer_id] = (
+                weight_scale * np.random.randn(all_dims[layer_id - 1], all_dims[layer_id])
             )
-            self.params['b%d' % (layer_id + 1)] = np.zeros(all_dims[layer_id + 1])
+            self.params['b%d' % layer_id] = np.zeros(all_dims[layer_id])
+
+            if self.normalization == "batchnorm":
+                self.params['gamma%d' % layer_id] = np.ones(all_dims[layer_id])
+                self.params['beta%d' % layer_id] = np.zeros(all_dims[layer_id])
+
+        self.params['W%d' % self.num_layers] = weight_scale * np.random.randn(all_dims[-1], num_classes)
+        self.params['b%d' % self.num_layers] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -246,6 +253,12 @@ class FullyConnectedNet(object):
             b = self.params['b%d' % layer_id]
             out, caches['cache_fc%d' % layer_id] = affine_forward(out, w, b)
 
+            if self.normalization == 'batchnorm':
+                gamma = self.params['gamma%d' % layer_id]
+                beta = self.params['beta%d' % layer_id]
+                bn_param = self.bn_params[layer_id - 1]
+                out, caches['cache_bn%d' % layer_id] = batchnorm_forward(out, gamma, beta, bn_param)
+
             out, caches['cache_relu%d' % layer_id] = relu_forward(out)
 
         w = self.params['W%d' % self.num_layers]
@@ -283,6 +296,10 @@ class FullyConnectedNet(object):
 
             cache = caches['cache_relu%d' % layer_id]
             dout = relu_backward(dout, cache)
+
+            if self.normalization == 'batchnorm':
+                cache = caches['cache_bn%d' % layer_id]
+                dout, grads['gamma%d' % layer_id], grads['beta%d' % layer_id] = batchnorm_backward(dout, cache)
 
             cache = caches['cache_fc%d' % layer_id]
             dout, grads['W%d' % layer_id], grads['b%d' % layer_id] = affine_backward(dout, cache)
