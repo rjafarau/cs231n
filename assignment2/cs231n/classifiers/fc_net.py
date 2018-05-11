@@ -182,7 +182,7 @@ class FullyConnectedNet(object):
             )
             self.params['b%d' % layer_id] = np.zeros(all_dims[layer_id])
 
-            if self.normalization == "batchnorm":
+            if self.normalization:
                 self.params['gamma%d' % layer_id] = np.ones(all_dims[layer_id])
                 self.params['beta%d' % layer_id] = np.zeros(all_dims[layer_id])
 
@@ -224,7 +224,7 @@ class FullyConnectedNet(object):
         Input / output: Same as TwoLayerNet above.
         """
         X = X.astype(self.dtype)
-        mode = 'test' if y is None else 'train'
+        mode = 'train' if y else 'test'
 
         # Set train/test mode for batchnorm params and dropout param since they
         # behave differently during training and testing.
@@ -253,11 +253,14 @@ class FullyConnectedNet(object):
             b = self.params['b%d' % layer_id]
             out, caches['cache_fc%d' % layer_id] = affine_forward(out, w, b)
 
-            if self.normalization == 'batchnorm':
+            if self.normalization:
                 gamma = self.params['gamma%d' % layer_id]
                 beta = self.params['beta%d' % layer_id]
                 bn_param = self.bn_params[layer_id - 1]
-                out, caches['cache_bn%d' % layer_id] = batchnorm_forward(out, gamma, beta, bn_param)
+                if self.normalization == 'batchnorm':
+                    out, caches['cache_bn%d' % layer_id] = batchnorm_forward(out, gamma, beta, bn_param)
+                if self.normalization == "layernorm":
+                    out, caches['cache_ln%d' % layer_id] = layernorm_forward(out, gamma, beta, bn_param)
 
             out, caches['cache_relu%d' % layer_id] = relu_forward(out)
 
@@ -300,6 +303,9 @@ class FullyConnectedNet(object):
             if self.normalization == 'batchnorm':
                 cache = caches['cache_bn%d' % layer_id]
                 dout, grads['gamma%d' % layer_id], grads['beta%d' % layer_id] = batchnorm_backward(dout, cache)
+            if self.normalization == 'layernorm':
+                cache = caches['cache_ln%d' % layer_id]
+                dout, grads['gamma%d' % layer_id], grads['beta%d' % layer_id] = layernorm_backward(dout, cache)
 
             cache = caches['cache_fc%d' % layer_id]
             dout, grads['W%d' % layer_id], grads['b%d' % layer_id] = affine_backward(dout, cache)
