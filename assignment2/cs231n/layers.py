@@ -492,7 +492,7 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     pad = conv_param['pad']
     stride = conv_param['stride']
-    N, C, H, W = x.shape
+    N, _, H, W = x.shape
     F, _, HH, WW = w.shape
 
     H_out = 1 + (H + 2 * pad - HH) // stride
@@ -532,7 +532,15 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+
+    F, _, HH, WW = w.shape
+
+    db = np.sum(dout, axis=(0, 2, 3))
+    dw = np.zeros_like(w)
+    dx = np.zeros_like(x)
+
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
