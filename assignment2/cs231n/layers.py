@@ -529,7 +529,7 @@ def conv_backward_naive(dout, cache):
     - dw: Gradient with respect to w
     - db: Gradient with respect to b
     """
-    dx, dw, db = None, None, None
+
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
@@ -551,8 +551,9 @@ def conv_backward_naive(dout, cache):
             H_slice = slice(i * stride, i * stride + HH)
             for j in range(W_out):
                 W_slice = slice(j * stride, j * stride + WW)
-                dw[filter_id] += np.sum(x_padded[:, :, H_slice, W_slice] * dout[:, filter_id, i, j].reshape(-1, 1, 1, 1), axis=0)
-                dx_padded[:, :, H_slice, W_slice] += w[filter_id] * dout[:, filter_id, i, j].reshape(-1, 1, 1, 1)
+                dout_point = dout[:, filter_id, i, j].reshape(-1, 1, 1, 1)
+                dw[filter_id] += np.sum(x_padded[:, :, H_slice, W_slice] * dout_point, axis=0)
+                dx_padded[:, :, H_slice, W_slice] += w[filter_id] * dout_point
 
     dx = dx_padded[:, :, pad:-pad, pad:-pad]
     ###########################################################################
@@ -580,11 +581,26 @@ def max_pool_forward_naive(x, pool_param):
       W' = 1 + (W - pool_width) / stride
     - cache: (x, pool_param)
     """
-    out = None
+
     ###########################################################################
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
-    pass
+    N, C, H, W = x.shape
+
+    HH, WW = pool_param['pool_height'], pool_param['pool_width']
+    stride = pool_param['stride']
+
+    H_out = 1 + (H - HH) // stride
+    W_out = 1 + (W - WW) // stride
+
+    out = np.zeros((N, C, H_out, W_out))
+
+    for i in range(H_out):
+        H_slice = slice(i * stride, i * stride + HH)
+        for j in range(W_out):
+            W_slice = slice(j * stride, j * stride + WW)
+            out[:, :, i, j] = np.max(x[:, :, H_slice, W_slice], axis=(2, 3))
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
