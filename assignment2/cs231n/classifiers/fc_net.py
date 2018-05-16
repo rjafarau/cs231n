@@ -106,9 +106,9 @@ class TwoLayerNet(object):
         _, grads['W1'], grads['b1'] = affine_relu_backward(dout1, cache1)
 
         if self.reg:
-            loss += 0.5 * (np.sum(self.params['W1'] ** 2) + np.sum(self.params['W2'] ** 2))
-            grads['W1'] += self.params['W1']
-            grads['W2'] += self.params['W2']
+            loss += 0.5 * self.reg * (np.sum(self.params['W1'] ** 2) + np.sum(self.params['W2'] ** 2))
+            grads['W1'] += self.reg * self.params['W1']
+            grads['W2'] += self.reg * self.params['W2']
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -320,8 +320,8 @@ class FullyConnectedNet(object):
         if self.reg:
             for layer_id in range(self.num_layers):
                 param_name = 'W%d' % (layer_id + 1)
-                loss += 0.5 * np.sum(self.params[param_name] ** 2)
-                grads[param_name] += self.params[param_name]
+                loss += 0.5 * self.reg * np.sum(self.params[param_name] ** 2)
+                grads[param_name] += self.reg * self.params[param_name]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
