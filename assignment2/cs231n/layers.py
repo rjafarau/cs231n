@@ -752,11 +752,17 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # and layer normalization!                                                #
     ###########################################################################
     N, C, H, W = x.shape
-    x_coerced = x.reshape(N * G, C * H * W // G)
+    x_coerced = x.reshape(N, G, C // G, H, W)
 
-    out, cache = layernorm_forward(x_coerced, gamma, beta, gn_param)
+    group_mean = x_coerced.mean(axis=(2, 3, 4), keepdims=True)
+    group_var = x_coerced.var(axis=(2, 3, 4), keepdims=True)
 
-    out = out.reshape(*x.shape)
+    x_hat = (x_coerced - group_mean) / np.sqrt(group_var + eps)
+
+    x_hat = x_hat.reshape(N, C, H, W)
+    out = gamma * x_hat + beta
+
+    cache = (x_hat, 1 / np.sqrt(group_var + eps), gamma, G)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -782,7 +788,24 @@ def spatial_groupnorm_backward(dout, cache):
     # TODO: Implement the backward pass for spatial group normalization.      #
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
-    pass
+    N, C, H, W = dout.shape
+    x_hat, group_inv_std, gamma, G = cache
+    D = H * W * C // G
+
+    dx_hat = dout * gamma
+
+    dgamma = np.sum(dout * x_hat, axis=(0, 2, 3), keepdims=True)
+    dbeta = np.sum(dout, axis=(0, 2, 3), keepdims=True)
+
+    dx_hat.resize(N, G, C // G, H, W)
+    x_hat.resize(N, G, C // G, H, W)
+
+    dx = ((group_inv_std / D) *
+          (D * dx_hat -
+           np.sum(dx_hat, axis=(2, 3, 4), keepdims=True) -
+           x_hat * np.sum(dx_hat * x_hat, axis=(2, 3, 4), keepdims=True)))
+
+    dx.resize(N, C, H, W)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
