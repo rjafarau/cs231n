@@ -1,1 +1,1 @@
-wget http://cs231n.stanford.edu/imagenet_val_25.npz
+wget -nc http://cs231n.stanford.edu/imagenet_val_25.npz
