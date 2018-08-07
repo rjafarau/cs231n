@@ -191,7 +191,9 @@ def word_embedding_forward(x, W):
     #                                                                            #
     # HINT: This can be done in one line using NumPy's array indexing.           #
     ##############################################################################
-    pass
+
+    out = W[x]  # For each x_ij in x returns a D-dim vector
+
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
