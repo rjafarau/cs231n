@@ -140,7 +140,34 @@ class CaptioningRNN(object):
         # Note also that you are allowed to make use of functions from layers.py   #
         # in your implementation, if needed.                                       #
         ############################################################################
-        pass
+        # FORWARD PASS
+        cache = {}
+
+        h0, cache['affine_layer'] = affine_forward(x=features, w=W_proj, b=b_proj)
+
+        word_embedding, cache['word_embedding_layer'] = word_embedding_forward(x=captions_in, W=W_embed)
+
+        if self.cell_type == 'rnn':
+            h, cache['rnn_layer'] = rnn_forward(x=word_embedding, h0=h0, Wx=Wx, Wh=Wh, b=b)
+
+        scores, cache['temporal_affine_layer'] = temporal_affine_forward(x=h, w=W_vocab, b=b_vocab)
+
+        loss, dscores = temporal_softmax_loss(x=scores, y=captions_out, mask=mask)
+
+        # BACKWARD PASS
+
+        dh, grads['W_vocab'], grads['b_vocab'] = (
+            temporal_affine_backward(
+                dout=dscores,
+                cache=cache['temporal_affine_layer']
+            )
+        )
+
+        dword_embedding, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dh=dh, cache=cache['rnn_layer'])
+
+        grads['W_embed'] = word_embedding_backward(dout=dword_embedding, cache=cache['word_embedding_layer'])
+
+        _, grads['W_proj'], grads['b_proj'] = affine_backward(dout=dh0, cache=cache['affine_layer'])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
