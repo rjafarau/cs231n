@@ -274,18 +274,18 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # TODO: Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
-    H = prev_h.shape[1]
+    act_i, act_f, act_o, act_g = np.split(x.dot(Wx) + prev_h.dot(Wh) + b, 4, axis=1)
 
-    activation = x.dot(Wx) + prev_h.dot(Wh) + b  # (N, 4H)
-
-    i = sigmoid(activation[:, :H])  # (N, H)
-    f = sigmoid(activation[:, H:(2 * H)])  # (N, H)
-    o = sigmoid(activation[:, (2 * H):-H])  # (N, H)
-    g = np.tanh(activation[:, -H:])  # (N, H)
+    i = sigmoid(act_i)  # (N, H)
+    f = sigmoid(act_f)  # (N, H)
+    o = sigmoid(act_o)  # (N, H)
+    g = np.tanh(act_g)  # (N, H)
 
     next_c = f * prev_c + i * g  # (N, H)
 
     next_h = o * np.tanh(next_c)  # (N, H)
+
+    cache = (next_c, prev_c, i, f, o, g, x, Wx, prev_h, Wh)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -317,7 +317,31 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
     # the output value from the nonlinearity.                                   #
     #############################################################################
-    pass
+    next_c, prev_c, i, f, o, g, x, Wx, prev_h, Wh = cache
+    tanh_next_c = np.tanh(next_c)
+
+    # Update dnext_c
+    dnext_c += dnext_h * o * (1 - tanh_next_c * tanh_next_c)  # (N, H)
+
+    di = dnext_c * g  # (N, H)
+    df = dnext_c * prev_c  # (N, H)
+    do = dnext_h * tanh_next_c  # (N, H)
+    dg = dnext_c * i  # (N, H)
+
+    dprev_c = dnext_c * f
+
+    dact = np.hstack((
+        di * i * (1 - i),  # (N, H)
+        df * f * (1 - f),  # (N, H)
+        do * o * (1 - o),  # (N, H)
+        dg * (1 - g * g)   # (N, H)
+    ))
+
+    dx = dact.dot(Wx.T)  # (N, 4H) * (4H, D) = (N, D)
+    dWx = x.T.dot(dact)  # (D, N) * (N, 4H) = (D, 4H)
+    dprev_h = dact.dot(Wh.T)  # (N, 4H) * (4H, H) = (N, H)
+    dWh = prev_h.T.dot(dact)  # (H, N) * (N, 4H) = (H, 4H)
+    db = dact.sum(axis=0)  # (N, 4H) --> (4H,)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
