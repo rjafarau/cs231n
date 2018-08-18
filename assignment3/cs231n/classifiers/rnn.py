@@ -140,8 +140,15 @@ class CaptioningRNN(object):
         # Note also that you are allowed to make use of functions from layers.py   #
         # in your implementation, if needed.                                       #
         ############################################################################
-        # FORWARD PASS
         cache = {}
+
+        cell_type_forward, cell_type_backward = (
+            (rnn_forward, rnn_backward)
+            if self.cell_type == 'rnn'
+            else (lstm_forward, lstm_backward)
+        )
+
+        # FORWARD PASS
 
         h0, cache['affine_layer'] = (
             affine_forward(
@@ -158,16 +165,15 @@ class CaptioningRNN(object):
             )
         )
 
-        if self.cell_type == 'rnn':
-            h, cache['rnn_layer'] = (
-                rnn_forward(
-                    x=word_embedding,
-                    h0=h0,
-                    Wx=Wx,
-                    Wh=Wh,
-                    b=b
-                )
+        h, cache['cell_type_layer'] = (
+            cell_type_forward(
+                x=word_embedding,
+                h0=h0,
+                Wx=Wx,
+                Wh=Wh,
+                b=b
             )
+        )
 
         scores, cache['temporal_affine_layer'] = (
             temporal_affine_forward(
@@ -195,9 +201,9 @@ class CaptioningRNN(object):
         )
 
         dword_embedding, dh0, grads['Wx'], grads['Wh'], grads['b'] = (
-            rnn_backward(
+            cell_type_backward(
                 dh=dh,
-                cache=cache['rnn_layer']
+                cache=cache['cell_type_layer']
             )
         )
 
