@@ -289,9 +289,14 @@ class CaptioningRNN(object):
         for n in range(N):
             curr_word_idx = self._start
             prev_h = h0[[n]]
+            prev_c = None if self.cell_type == 'rnn' else np.zeros_like(prev_h)
+            next_c = None
             for t in range(max_length):
                 word_embedding, _ = word_embedding_forward(x=[curr_word_idx], W=W_embed)
-                next_h, _ = rnn_step_forward(x=word_embedding, prev_h=prev_h, Wx=Wx, Wh=Wh, b=b)
+                if self.cell_type == 'rnn':
+                    next_h, _ = rnn_step_forward(word_embedding, prev_h, Wx, Wh, b)
+                else:
+                    next_h, next_c, _ = lstm_step_forward(word_embedding, prev_h, prev_c, Wx, Wh, b)
                 scores, _ = affine_forward(x=next_h, w=W_vocab, b=b_vocab)
 
                 next_word_idx = scores.argmax(axis=1)[0]
@@ -300,6 +305,7 @@ class CaptioningRNN(object):
                 captions[n, t] = next_word_idx
                 curr_word_idx = next_word_idx
                 prev_h = next_h
+                prev_c = next_c
 
         ############################################################################
         #                             END OF YOUR CODE                             #
